@@ -12,7 +12,7 @@
  * Plugin Name:  RootLabs POS for WooCommerce
  * Plugin URI:   https://rootlabs.mx
  * Description:  Sistema de Punto de Venta open source para WooCommerce. Interfaz React, backend PHP seguro, compatible HPOS.
- * Version:      0.1.0
+ * Version:      0.1.1
  * Author:       rootlabs.mx
  * Author URI:   https://rootlabs.mx
  * License:      GPL-2.0+
@@ -28,7 +28,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MX_POS_PRO_VERSION', '0.1.0');
+define('MX_POS_PRO_VERSION', '0.1.1');
 define('MX_POS_PRO_DB_VERSION', '1.11');
 define('MX_POS_PRO_FILE', __FILE__);
 define('MX_POS_PRO_DIR', plugin_dir_path(__FILE__));

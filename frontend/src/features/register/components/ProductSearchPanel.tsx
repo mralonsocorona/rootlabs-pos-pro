@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Input } from '../../../components/ui';
 import { useLiveProductSearch } from '../hooks/useLiveProductSearch';
 import ProductResultCard from './ProductResultCard';
@@ -15,6 +15,15 @@ function ProductSearchPanel({ onAddToCart }: ProductSearchPanelProps) {
     useState<CatalogProduct | null>(null);
   const { results, loading, refreshing, error, searched } =
     useLiveProductSearch(query, 24);
+
+  const handleAddToCart = useCallback(
+    (product: IndexedProduct) => {
+      onAddToCart(product);
+      setQuery('');
+      setSelectedProduct(null);
+    },
+    [onAddToCart],
+  );
 
   return (
     <div className="mx-register-search">
@@ -71,7 +80,7 @@ function ProductSearchPanel({ onAddToCart }: ProductSearchPanelProps) {
             <ProductResultCard
               key={product.product_id}
               product={product}
-              onAddToCart={onAddToCart}
+              onAddToCart={handleAddToCart}
               onSelectVariations={setSelectedProduct}
             />
           ))}
@@ -88,7 +97,7 @@ function ProductSearchPanel({ onAddToCart }: ProductSearchPanelProps) {
         open={selectedProduct !== null}
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}
-        onAddToCart={onAddToCart}
+        onAddToCart={handleAddToCart}
       />
     </div>
   );

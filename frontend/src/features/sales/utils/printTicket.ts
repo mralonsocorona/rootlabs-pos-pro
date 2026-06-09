@@ -4,12 +4,51 @@ export function writeTicketAndPrint(win: Window, html: string): void {
   win.document.close();
   win.focus();
 
-  void waitForTicketReady(win).then(() => {
-    win.print();
-  });
+  let fallbackCloseTimer: number | undefined;
 
-  win.addEventListener('afterprint', () => {
-    win.close();
+  const clearFallbackCloseTimer = (): void => {
+    if (fallbackCloseTimer !== undefined) {
+      window.clearTimeout(fallbackCloseTimer);
+      fallbackCloseTimer = undefined;
+    }
+  };
+
+  const closeTicketWindow = (): void => {
+    clearFallbackCloseTimer();
+
+    try {
+      if (!win.closed) {
+        win.close();
+      }
+    } catch {
+      clearFallbackCloseTimer();
+    }
+  };
+
+  try {
+    win.addEventListener(
+      'afterprint',
+      () => {
+        window.setTimeout(closeTicketWindow, 250);
+      },
+      { once: true },
+    );
+
+    win.addEventListener('pagehide', closeTicketWindow, { once: true });
+  } catch {
+    clearFallbackCloseTimer();
+  }
+
+  void waitForTicketReady(win).then(() => {
+    window.setTimeout(() => {
+      try {
+        win.print();
+      } catch {
+        closeTicketWindow();
+      }
+    }, 100);
+
+    fallbackCloseTimer = window.setTimeout(closeTicketWindow, 3000);
   });
 }
 
