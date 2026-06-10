@@ -5467,3 +5467,204 @@
   font-size: 13px;
   line-height: 20px;
 }
+
+
+/* Hotfix UI Ventas del Turno / Pre-corte: modal ancho + controles homogéneos */
+#mx-pos-pro-root .mx-cut-x-modal-panel {
+  width: min(96vw, 1440px);
+  max-width: min(96vw, 1440px);
+}
+
+#mx-pos-pro-root .mx-cut-x-modal-panel .mx-ui-modal__body {
+  padding-left: 28px;
+  padding-right: 28px;
+}
+
+#mx-pos-pro-root .mx-cut-x-modal__columns {
+  grid-template-columns: minmax(390px, 0.86fr) minmax(780px, 1.34fr);
+  gap: 28px;
+  align-items: start;
+}
+
+#mx-pos-pro-root .mx-cut-x-modal__counter {
+  min-width: 0;
+  width: 100%;
+}
+
+#mx-pos-pro-root .mx-kpi-table-container {
+  width: 100%;
+  overflow-x: visible;
+}
+
+#mx-pos-pro-root .mx-kpi-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+#mx-pos-pro-root .mx-kpi-table th,
+#mx-pos-pro-root .mx-kpi-table td {
+  padding: 12px 14px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+#mx-pos-pro-root .mx-kpi-table th:nth-child(1),
+#mx-pos-pro-root .mx-kpi-table td:nth-child(1) {
+  width: 12%;
+}
+
+#mx-pos-pro-root .mx-kpi-table th:nth-child(2),
+#mx-pos-pro-root .mx-kpi-table td:nth-child(2) {
+  width: 13%;
+}
+
+#mx-pos-pro-root .mx-kpi-table th:nth-child(3),
+#mx-pos-pro-root .mx-kpi-table td:nth-child(3) {
+  width: 29%;
+}
+
+#mx-pos-pro-root .mx-kpi-table th:nth-child(4),
+#mx-pos-pro-root .mx-kpi-table td:nth-child(4) {
+  width: 14%;
+}
+
+#mx-pos-pro-root .mx-kpi-table th:nth-child(5),
+#mx-pos-pro-root .mx-kpi-table td:nth-child(5) {
+  width: 16%;
+}
+
+#mx-pos-pro-root .mx-kpi-table th:nth-child(6),
+#mx-pos-pro-root .mx-kpi-table td:nth-child(6) {
+  width: 16%;
+  text-align: right;
+}
+
+#mx-pos-pro-root .mx-kpi-table__action {
+  text-align: left;
+}
+
+#mx-pos-pro-root .mx-kpi-table__action .mx-ui-button,
+#mx-pos-pro-root .mx-pos-payment-method-hotfix-btn,
+#mx-pos-pro-root .mx-pos-payment-method-hotfix-control .mx-ui-button {
+  min-height: 34px;
+  height: 34px;
+  padding: 6px 12px;
+  border-radius: var(--mx-radius-md);
+  border: 1px solid var(--mx-border-medium);
+  background: var(--mx-action-secondary);
+  color: var(--mx-text-primary);
+  font-family: var(--mx-font-family);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+#mx-pos-pro-root .mx-kpi-table__action .mx-ui-button:hover:not(:disabled),
+#mx-pos-pro-root .mx-pos-payment-method-hotfix-btn:hover:not(:disabled),
+#mx-pos-pro-root .mx-pos-payment-method-hotfix-control .mx-ui-button:hover:not(:disabled) {
+  background: var(--mx-bg-hover);
+  border-color: var(--mx-border-dark);
+}
+
+#mx-pos-pro-root .mx-pos-payment-method-hotfix-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 0;
+  margin-top: 0;
+  vertical-align: middle;
+}
+
+#mx-pos-pro-root .mx-pos-payment-method-hotfix-select {
+  height: 34px;
+  min-height: 34px;
+  width: 118px;
+  max-width: 118px;
+  padding: 6px 30px 6px 10px;
+  border: 1px solid var(--mx-border-medium);
+  border-radius: var(--mx-radius-md);
+  background: var(--mx-bg-surface);
+  color: var(--mx-text-primary);
+  font-family: var(--mx-font-family);
+  font-size: 12px;
+  line-height: 16px;
+  box-sizing: border-box;
+}
+
+#mx-pos-pro-root .mx-pos-payment-method-hotfix-select:focus {
+  outline: none;
+  border-color: var(--mx-action-primary);
+}
+
+#mx-pos-pro-root .mx-cut-modal__actions {
+  align-items: center;
+}
+
+#mx-pos-pro-root .mx-cut-modal__actions .mx-ui-button {
+  min-height: 42px;
+  border-radius: var(--mx-radius-md);
+}
+
+/* Hotfix UI: hacer evidente que Ventas del turno es clickable */
+#mx-pos-pro-root .mx-session-banner__amount--clickable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease, transform .12s ease;
+}
+
+#mx-pos-pro-root .mx-session-banner__amount--clickable:hover {
+  background: var(--mx-bg-hover);
+  border-color: var(--mx-border-dark);
+  color: var(--mx-text-primary);
+}
+
+#mx-pos-pro-root .mx-session-banner__amount--clickable:active {
+  transform: translateY(1px);
+}
+
+#mx-pos-pro-root .mx-session-banner__amount--clickable:focus-visible {
+  outline: 2px solid var(--mx-action-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1280px) {
+  #mx-pos-pro-root .mx-cut-x-modal-panel {
+    width: calc(100vw - 32px);
+    max-width: calc(100vw - 32px);
+  }
+
+  #mx-pos-pro-root .mx-cut-x-modal__columns {
+    grid-template-columns: minmax(360px, .9fr) minmax(700px, 1.1fr);
+    gap: 20px;
+  }
+
+  #mx-pos-pro-root .mx-kpi-table th,
+  #mx-pos-pro-root .mx-kpi-table td {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+@media (max-width: 1080px) {
+  #mx-pos-pro-root .mx-cut-x-modal__columns {
+    grid-template-columns: 1fr;
+  }
+
+  #mx-pos-pro-root .mx-kpi-table-container {
+    overflow-x: auto;
+  }
+
+  #mx-pos-pro-root .mx-kpi-table {
+    min-width: 760px;
+  }
+}
+
