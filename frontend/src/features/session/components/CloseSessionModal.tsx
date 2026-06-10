@@ -127,6 +127,7 @@ function writeCloseSessionDraft(
     Object.values(quantities).some((value) => value !== '' && parseInt(value, 10) > 0);
 
   if (!hasDraft) {
+    clearCloseSessionDraft(sessionId);
     return;
   }
 
