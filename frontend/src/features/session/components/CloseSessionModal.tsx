@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Modal, Button, MoneyDisplay, Input } from '../../../components/ui';
 import { closeSession } from '../services/cashSessionApi';
 import type { CloseSessionTotals, CloseSessionResponse } from '../types';
@@ -43,6 +43,116 @@ function parseMoney(value: string | number | undefined | null): number {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+const CLOSE_SESSION_DRAFT_PREFIX = 'mx-pos:close-session-draft';
+
+interface CloseSessionDraft {
+  sessionId: number;
+  quantities: Record<string, string>;
+  closeNote: string;
+  updatedAt: number;
+}
+
+function getCloseSessionDraftKey(sessionId: number): string {
+  return `${CLOSE_SESSION_DRAFT_PREFIX}:${sessionId}`;
+}
+
+function sanitizeDraftQuantities(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.entries(value as Record<string, unknown>).reduce<Record<string, string>>(
+    (acc, [key, rawValue]) => {
+      if (!key) return acc;
+
+      if (typeof rawValue === 'string') {
+        acc[key] =
+          rawValue === '' ? '' : String(Math.max(0, parseInt(rawValue, 10) || 0));
+        return acc;
+      }
+
+      if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+        acc[key] = String(Math.max(0, Math.trunc(rawValue)));
+      }
+
+      return acc;
+    },
+    {},
+  );
+}
+
+function readCloseSessionDraft(
+  sessionId: number,
+): Pick<CloseSessionDraft, 'quantities' | 'closeNote'> | null {
+  if (typeof window === 'undefined' || sessionId <= 0) {
+    return null;
+  }
+
+  const key = getCloseSessionDraftKey(sessionId);
+
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<CloseSessionDraft>;
+
+    if (!parsed || parsed.sessionId !== sessionId) {
+      return null;
+    }
+
+    return {
+      quantities: sanitizeDraftQuantities(parsed.quantities),
+      closeNote: typeof parsed.closeNote === 'string' ? parsed.closeNote : '',
+    };
+  } catch {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {}
+
+    return null;
+  }
+}
+
+function writeCloseSessionDraft(
+  sessionId: number,
+  quantities: Record<string, string>,
+  closeNote: string,
+): void {
+  if (typeof window === 'undefined' || sessionId <= 0) {
+    return;
+  }
+
+  const hasDraft =
+    closeNote.trim() !== '' ||
+    Object.values(quantities).some((value) => value !== '' && parseInt(value, 10) > 0);
+
+  if (!hasDraft) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      getCloseSessionDraftKey(sessionId),
+      JSON.stringify({
+        sessionId,
+        quantities,
+        closeNote,
+        updatedAt: Date.now(),
+      } satisfies CloseSessionDraft),
+    );
+  } catch {}
+}
+
+function clearCloseSessionDraft(sessionId: number): void {
+  if (typeof window === 'undefined' || sessionId <= 0) {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(getCloseSessionDraftKey(sessionId));
+  } catch {}
+}
+
 interface CloseSessionModalProps {
   open: boolean;
   sessionId: number;
@@ -62,11 +172,33 @@ function CloseSessionModal({
   onClosed,
   onCancel,
 }: CloseSessionModalProps) {
-  const [quantities, setQuantities] = useState<Record<string, string>>({});
-  const [closeNote, setCloseNote] = useState('');
+  const [quantities, setQuantities] = useState<Record<string, string>>(
+    () => readCloseSessionDraft(sessionId)?.quantities ?? {},
+  );
+  const [closeNote, setCloseNote] = useState(
+    () => readCloseSessionDraft(sessionId)?.closeNote ?? '',
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<Step>('form');
+
+  useEffect(() => {
+    if (!open) return;
+
+    const draft = readCloseSessionDraft(sessionId);
+    if (!draft) return;
+
+    setQuantities(draft.quantities);
+    setCloseNote(draft.closeNote);
+    setError(null);
+    setStep('form');
+  }, [open, sessionId]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    writeCloseSessionDraft(sessionId, quantities, closeNote);
+  }, [open, sessionId, quantities, closeNote]);
 
   const resetForm = useCallback(() => {
     setQuantities({});
@@ -78,10 +210,11 @@ function CloseSessionModal({
 
   const handleClose = useCallback(() => {
     if (!submitting) {
-      resetForm();
+      setError(null);
+      setStep('form');
       onCancel();
     }
-  }, [submitting, resetForm, onCancel]);
+  }, [submitting, onCancel]);
 
   const cashIn = useMemo(() => parseFloat(movementTotals.cash_in), [movementTotals.cash_in]);
   const cashOut = useMemo(() => parseFloat(movementTotals.cash_out), [movementTotals.cash_out]);
@@ -205,13 +338,15 @@ void salesChangeOut;
         close_note: closeNote.trim() || '',
       });
 
+      clearCloseSessionDraft(sessionId);
+      resetForm();
       onClosed(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo cerrar la caja');
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, sessionId, quantities, closeNote, onClosed]);
+  }, [submitting, sessionId, quantities, closeNote, resetForm, onClosed]);
 
   return (
     <Modal
