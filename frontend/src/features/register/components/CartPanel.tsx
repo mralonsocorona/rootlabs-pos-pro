@@ -1,3 +1,4 @@
+import { Button } from '../../../components/ui';
 import CartItemRow from './CartItemRow';
 import RegisterSummary from './RegisterSummary';
 import CustomerSelector from '../../customers/components/CustomerSelector';

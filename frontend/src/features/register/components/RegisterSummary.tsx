@@ -34,8 +34,6 @@ function RegisterSummary({
   validationResult,
   onCharge,
   onClearCart,
-  onParkCart,
-  onShowParkedCarts,
   discountInput,
   onApplyDiscount,
   onClearDiscount,
@@ -143,9 +141,11 @@ function RegisterSummary({
 
       {cartState === 'invalid' && validationResult && (
         <div className="mx-register-summary__error" role="alert">
-          {validationResult.errors.length > 0
-            ? validationResult.errors.join('. ')
-            : 'El carrito no es válido. Revisa los productos.'}
+          {validationResult.items.some((item) => !item.valid)
+            ? 'Revisa los productos marcados antes de cobrar.'
+            : validationResult.errors.length > 0
+              ? validationResult.errors.join('. ')
+              : 'El carrito no es válido. Revisa los productos.'}
         </div>
       )}
 

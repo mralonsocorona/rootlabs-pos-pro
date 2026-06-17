@@ -1,7 +1,7 @@
 === RootLabs POS for WooCommerce ===
 Contributors: blacknovamx
 Tags: woocommerce, pos, point of sale, retail, cash register
-Requires at least: 6.0
+Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 8.0
 Stable tag: 0.1.2

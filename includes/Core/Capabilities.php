@@ -46,6 +46,7 @@ class Capabilities
             self::CASHIER_ROLE => [
                 'mx_pos_access',
                 'mx_pos_sell',
+                'mx_pos_refund',
                 'mx_pos_open_session',
                 'mx_pos_close_session',
                 'mx_pos_cash_cut',

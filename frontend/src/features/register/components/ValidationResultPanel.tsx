@@ -5,13 +5,35 @@ interface ValidationResultPanelProps {
   result: CartValidationResponse | null;
 }
 
+function formatValidationMessage(message: string): string {
+  const insufficientStockMatch = message.match(/^Insufficient stock\. Available: (\d+)\.$/);
+
+  if (insufficientStockMatch) {
+    const available = Number(insufficientStockMatch[1]);
+    const unitLabel = available === 1 ? 'unidad disponible' : 'unidades disponibles';
+
+    return `Solo hay ${available} ${unitLabel}. Ajusta la cantidad para continuar.`;
+  }
+
+  if (message === 'Product is out of stock.') {
+    return 'Producto sin stock disponible.';
+  }
+
+  if (/^\d+ item\(s\) could not be validated\.$/.test(message)) {
+    return 'Hay productos que necesitan revisión antes de cobrar.';
+  }
+
+  return message;
+}
+
 function ValidationResultPanel({ result }: ValidationResultPanelProps) {
   if (!result) {
     return null;
   }
 
-  const hasGlobalErrors = result.errors.length > 0;
   const invalidItems = result.items.filter((item) => !item.valid);
+  const visibleGlobalErrors = invalidItems.length > 0 ? [] : result.errors;
+  const hasGlobalErrors = visibleGlobalErrors.length > 0;
 
   if (!hasGlobalErrors && invalidItems.length === 0) {
     return null;
@@ -20,14 +42,14 @@ function ValidationResultPanel({ result }: ValidationResultPanelProps) {
   return (
     <div className="mx-register-validation">
       <p className="mx-register-validation__status mx-register-validation__status--invalid">
-        Errores de validación
+        Revisa estos productos
       </p>
 
       {hasGlobalErrors && (
         <div className="mx-register-validation__errors">
-          {result.errors.map((err, i) => (
+          {visibleGlobalErrors.map((err, i) => (
             <p key={i} className="mx-register-validation__error">
-              {err}
+              {formatValidationMessage(err)}
             </p>
           ))}
         </div>
@@ -42,7 +64,7 @@ function ValidationResultPanel({ result }: ValidationResultPanelProps) {
                   {item.name}
                 </span>
                 <span className="mx-register-validation__item-status mx-register-validation__item-status--invalid">
-                  Inválido
+                  Revisar
                 </span>
               </div>
               <div className="mx-register-validation__item-meta">
@@ -59,7 +81,7 @@ function ValidationResultPanel({ result }: ValidationResultPanelProps) {
                 <div className="mx-register-validation__item-errors">
                   {item.errors.map((err, j) => (
                     <p key={j} className="mx-register-validation__item-error">
-                      {err}
+                      {formatValidationMessage(err)}
                     </p>
                   ))}
                 </div>

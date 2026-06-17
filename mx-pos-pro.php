@@ -20,6 +20,8 @@
 
 defined('ABSPATH') || exit;
 
+require_once __DIR__ . '/includes/API/PaymentMethodCorrectionController.php';
+
 define('MX_POS_PRO_VERSION', '1.0.0');
 define('MX_POS_PRO_DB_VERSION', '1.11');
 define('MX_POS_PRO_FILE', __FILE__);

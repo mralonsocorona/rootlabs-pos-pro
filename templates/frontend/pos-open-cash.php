@@ -13,7 +13,12 @@ $display_name = isset($employee['display_name']) ? $employee['display_name'] : '
 ?><!doctype html>
 <html <?php language_attributes(); ?>>
 <head>
-    <meta charset="<?php echo esc_attr(get_bloginfo('charset', 'display')); ?>" />
+    <?php
+    if (function_exists('wp_site_icon')) {
+        wp_site_icon();
+    }
+    ?>
+<meta charset="<?php echo esc_attr(get_bloginfo('charset', 'display')); ?>" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex,nofollow" />
     <title><?php echo esc_html__('Rootlabs Pos Pro', 'mx-pos-pro'); ?></title>

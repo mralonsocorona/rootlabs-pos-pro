@@ -35,6 +35,32 @@ function getUnitPrice(p: IndexedProduct): number {
   return 0;
 }
 
+function calculateCartLineDiscount(item: CartItem): number {
+  const discount = item.manual_discount as
+    | { type?: string; value?: string | number; amount?: string | number }
+    | null
+    | undefined;
+
+  if (!discount) {
+    return 0;
+  }
+
+  const lineSubtotal = item.unit_price * item.quantity;
+  const rawValue = Number(discount.value ?? discount.amount ?? 0);
+
+  if (!Number.isFinite(rawValue) || rawValue <= 0 || lineSubtotal <= 0) {
+    return 0;
+  }
+
+  const discountType = String(discount.type ?? '');
+
+  if (discountType === 'percent' || discountType === 'percentage') {
+    return Math.min(lineSubtotal, lineSubtotal * (rawValue / 100));
+  }
+
+  return Math.min(lineSubtotal, rawValue);
+}
+
 function cartSubtotal(items: CartItem[]): number {
   return items.reduce((sum, i) => sum + Math.max(0, i.unit_price * i.quantity - calculateCartLineDiscount(i)), 0);
 }
@@ -566,6 +592,9 @@ function Register({ connectionStatus }: { connectionStatus: ConnectionStatus }) 
           items={cartItems}
           onUpdateQuantity={updateQuantity}
           onRemoveItem={removeFromCart}
+          canApplyDiscount={window.mxPosProSettings?.capabilities?.canApplyDiscount ?? false}
+          onApplyItemDiscount={handleApplyItemDiscount}
+          onClearItemDiscount={handleClearItemDiscount}
           subtotal={subtotal}
           cartState={cartState}
           isValidating={isValidating}

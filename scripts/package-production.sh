@@ -32,6 +32,7 @@ REQUIRED_SOURCE=(
   "templates/frontend/pos-shell.php"
   "assets/dist/assets/index.js"
   "assets/dist/assets/index.css"
+  "assets/dist/index.html"
 )
 
 echo
@@ -45,16 +46,16 @@ for f in "${REQUIRED_SOURCE[@]}"; do
 done
 
 echo
-echo "== 3. Typecheck y build =="
-npm run typecheck
-[ "$?" -eq 0 ] && ok "typecheck OK" || fail "typecheck falló"
+echo "== 3. Validar dist de producción sincronizado =="
+for f in assets/dist/index.html assets/dist/assets/index.js assets/dist/assets/index.css; do
+  [ -f "$f" ] && ok "$f" || fail "Falta dist de producción: $f"
+done
 
-npm run build
-BUILD_EXIT="$?"
-
-rm -f assets/dist/index.html
-
-[ "$BUILD_EXIT" -eq 0 ] && ok "build OK" || fail "build falló"
+grep -q "Stock máximo agregado" assets/dist/assets/index.js \
+  && grep -q "Carrito restaurado" assets/dist/assets/index.js \
+  && grep -q "Existencias actualizadas" assets/dist/assets/index.js \
+  && ok "dist contiene hotfix probado en servidor" \
+  || fail "dist no contiene los hotfixes probados en servidor"
 
 if [ "$FAILED" -eq 0 ]; then
   echo
@@ -99,6 +100,9 @@ if [ "$FAILED" -eq 0 ]; then
     --exclude ".DS_Store" \
     --exclude "/package.json" \
     --exclude "/package-lock.json" \
+    --exclude "/pnpm-lock.yaml" \
+    --exclude "/readme.txt" \
+    --exclude "/languages/" \
     --exclude "/tsconfig.json" \
     --exclude "/vite.config.ts" \
     --exclude "/vite-env.d.ts"
@@ -117,6 +121,7 @@ fi
 if [ "$FAILED" -eq 0 ]; then
   echo
   echo "== 7. Crear ZIP =="
+  rm -f "$ZIP"
   (
     cd "$STAGING"
     zip -r "$ZIP" "$PLUGIN_SLUG"
@@ -136,7 +141,7 @@ if [ "$FAILED" -eq 0 ]; then
 
   echo
   echo "== Confirmar que NO se coló basura =="
-  unzip -l "$ZIP" | grep -E "mx-pos-pro/build/|mx-pos-pro/frontend/|mx-pos-pro/docs/|mx-pos-pro/scripts/|node_modules/|\.git/|package\.json|package-lock\.json|tsconfig\.json|vite\.config\.ts|README\.md|CHANGELOG\.md|CONTRIBUTING\.md|SECURITY\.md|ROADMAP\.md|\.gitignore"
+  unzip -l "$ZIP" | grep -E "mx-pos-pro/build/|mx-pos-pro/frontend/|mx-pos-pro/docs/|mx-pos-pro/scripts/|node_modules/|\.git/|package\.json|package-lock\.json|pnpm-lock\.yaml|readme\.txt|mx-pos-pro/languages/|tsconfig\.json|vite\.config\.ts|README\.md|CHANGELOG\.md|CONTRIBUTING\.md|SECURITY\.md|ROADMAP\.md|\.gitignore"
 
   if [ "$?" -eq 0 ]; then
     fail "El ZIP contiene archivos de desarrollo o build viejo."

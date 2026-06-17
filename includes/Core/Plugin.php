@@ -4,6 +4,10 @@ namespace MXPOSPro\Core;
 
 defined('ABSPATH') || exit;
 
+if (! class_exists(\MXPOSPro\Database\Migrator::class)) {
+    require_once dirname(__DIR__) . '/Database/Migrator.php';
+}
+
 class Plugin
 {
     private static ?self $instance = null;

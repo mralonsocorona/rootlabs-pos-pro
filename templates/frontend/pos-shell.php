@@ -9,7 +9,12 @@ $asset_data = Assets::pos_asset_data();
 ?><!doctype html>
 <html <?php language_attributes(); ?>>
 <head>
-    <meta charset="<?php echo esc_attr(get_bloginfo('charset', 'display')); ?>" />
+    <?php
+    if (function_exists('wp_site_icon')) {
+        wp_site_icon();
+    }
+    ?>
+<meta charset="<?php echo esc_attr(get_bloginfo('charset', 'display')); ?>" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex,nofollow" />
     <title><?php echo esc_html__('Rootlabs Pos Pro', 'mx-pos-pro'); ?></title>
@@ -244,6 +249,111 @@ $asset_data = Assets::pos_asset_data();
   outline-offset: 2px !important;
 }
 </style>
+
+<script id="mx-pos-order-folio-bridge">
+(function () {
+  if (window.mxPosOrderFolioBridgeInstalled) return;
+  window.mxPosOrderFolioBridgeInstalled = true;
+
+  const posToOrder = new Map();
+  const orderToPos = new Map();
+
+  function parseId(text) {
+    const match = String(text || '').match(/#?\s*(\d+)/);
+    return match ? parseInt(match[1], 10) : 0;
+  }
+
+  function rememberSale(item) {
+    if (!item || typeof item !== 'object') return;
+
+    const posId = parseInt(item.id || item.sale_id || item.pos_sale_id || 0, 10);
+    const orderId = parseInt(item.wc_order_id || item.order_id || 0, 10);
+
+    if (!posId || !orderId) return;
+
+    posToOrder.set(posId, orderId);
+    orderToPos.set(orderId, posId);
+  }
+
+  function rememberPayload(payload) {
+    if (!payload || typeof payload !== 'object') return;
+
+    if (Array.isArray(payload.items)) {
+      payload.items.forEach(rememberSale);
+    }
+
+    if (Array.isArray(payload.sales)) {
+      payload.sales.forEach(rememberSale);
+    }
+
+    if (payload.id || payload.wc_order_id || payload.order_id) {
+      rememberSale(payload);
+    }
+  }
+
+  function normalizeVisibleFolios() {
+    document.querySelectorAll('.mx-history-table tbody tr').forEach((row) => {
+      const idEl = row.querySelector('.mx-history-table__id');
+      if (!idEl) return;
+
+      const currentId = parseId(idEl.textContent);
+      if (!currentId) return;
+
+      let posId = posToOrder.has(currentId) ? currentId : 0;
+      let orderId = posId ? posToOrder.get(posId) : 0;
+
+      if (!posId && orderToPos.has(currentId)) {
+        orderId = currentId;
+        posId = orderToPos.get(currentId);
+      }
+
+      if (!posId || !orderId) return;
+
+      row.dataset.mxPosSaleId = String(posId);
+      row.dataset.mxWooOrderId = String(orderId);
+
+      if (idEl.textContent.trim() !== '#' + orderId) {
+        idEl.textContent = '#' + orderId;
+      }
+
+      idEl.title = 'Venta POS #' + posId;
+    });
+  }
+
+  const originalFetch = window.fetch;
+  window.fetch = async function () {
+    const response = await originalFetch.apply(this, arguments);
+
+    try {
+      const input = arguments[0];
+      const url = typeof input === 'string' ? input : input && input.url ? input.url : String(input || '');
+
+      if (url.includes('/mx-pos/v1/sales/history') || url.includes('/mx-pos/v1/sales/lookup')) {
+        response.clone().json()
+          .then((payload) => {
+            rememberPayload(payload);
+            setTimeout(normalizeVisibleFolios, 0);
+            setTimeout(normalizeVisibleFolios, 150);
+            setTimeout(normalizeVisibleFolios, 500);
+          })
+          .catch(function () {});
+      }
+    } catch (err) {}
+
+    return response;
+  };
+
+  const root = document.getElementById('mx-pos-pro-root') || document.body;
+  if (root && window.MutationObserver) {
+    new MutationObserver(normalizeVisibleFolios).observe(root, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  setInterval(normalizeVisibleFolios, 1500);
+})();
+</script>
 <script id="mx-pos-payment-method-correction">
 (function () {
   if (window.mxPosPaymentMethodCorrectionInstalled) return;
@@ -366,7 +476,7 @@ $asset_data = Assets::pos_asset_data();
 
       if (!idEl || !methodEl) return;
 
-      const saleId = parseId(idEl.textContent);
+      const saleId = parseInt(row.dataset.mxPosSaleId || '', 10) || parseId(idEl.textContent);
       if (!saleId) return;
 
       const cell = methodEl.closest('td') || methodEl.parentElement;
