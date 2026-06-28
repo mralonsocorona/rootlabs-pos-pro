@@ -195,7 +195,7 @@ class SaleService
 
             if ($couponCode !== '') {
                 $couponService = new CouponLookupService();
-                $couponResult  = $couponService->validate($couponCode, $couponBaseSubtotal, null);
+                $couponResult  = $couponService->validate_for_items($couponCode, $validatedItems, $userId);
 
                 if (is_wp_error($couponResult)) {
                     return $couponResult;

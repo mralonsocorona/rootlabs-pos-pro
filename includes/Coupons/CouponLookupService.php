@@ -242,6 +242,171 @@ class CouponLookupService
         ];
     }
 
+    /**
+     * Validate a coupon against concrete POS cart lines.
+     *
+     * This keeps POS coupon totals aligned with WooCommerce sale-item rules.
+     *
+     * @param array<int, object|array> $items Validated cart items.
+     */
+    public function validate_for_items(string $code, array $items, ?int $customerId = null): array|WP_Error
+    {
+        $coupon = $this->get_coupon_by_code($code);
+
+        if (is_wp_error($coupon)) {
+            return $coupon;
+        }
+
+        $eligibleSubtotal = $this->calculate_coupon_eligible_subtotal($coupon, $items);
+
+        if ($eligibleSubtotal <= 0) {
+            return new WP_Error(
+                'mx_pos_coupon_not_applicable',
+                __('Coupon is not applicable to the selected products.', 'mx-pos-pro'),
+                ['status' => 400]
+            );
+        }
+
+        $result = $this->validate($coupon->get_code(), $eligibleSubtotal, $customerId);
+
+        if (is_wp_error($result)) {
+            return $result;
+        }
+
+        $result['eligible_subtotal'] = number_format($eligibleSubtotal, 4, '.', '');
+
+        return $result;
+    }
+
+    /**
+     * @param array<int, object|array> $items
+     */
+    private function calculate_coupon_eligible_subtotal(\WC_Coupon $coupon, array $items): float
+    {
+        $eligibleSubtotal = 0.0;
+
+        foreach ($items as $item) {
+            $valid = $this->read_item_value($item, 'valid');
+
+            if ($valid === false) {
+                continue;
+            }
+
+            $productId   = $this->read_item_int($item, 'product_id');
+            $variationId = $this->read_item_int($item, 'variation_id');
+            $quantity    = max(1, $this->read_item_int($item, 'quantity'));
+
+            if ($productId <= 0) {
+                continue;
+            }
+
+            $product = wc_get_product($variationId > 0 ? $variationId : $productId);
+
+            if (! $product || ! $product->exists()) {
+                continue;
+            }
+
+            if (! $this->coupon_allows_product($coupon, $product, $productId, $variationId, $quantity)) {
+                continue;
+            }
+
+            $lineSubtotal = $this->read_item_float($item, 'line_subtotal');
+
+            if ($lineSubtotal <= 0) {
+                $lineSubtotal = $this->read_item_float($item, 'line_total');
+            }
+
+            $lineDiscount = $this->read_item_float($item, 'line_discount_total');
+
+            $eligibleSubtotal += max(0, $lineSubtotal - $lineDiscount);
+        }
+
+        return $eligibleSubtotal;
+    }
+
+    private function coupon_allows_product(
+        \WC_Coupon $coupon,
+        \WC_Product $product,
+        int $productId,
+        int $variationId,
+        int $quantity
+    ): bool {
+        if ($coupon->get_exclude_sale_items() && $this->product_is_on_sale($product)) {
+            return false;
+        }
+
+        if (method_exists($coupon, 'is_valid_for_product')) {
+            try {
+                return (bool) $coupon->is_valid_for_product($product, [
+                    'product_id'   => $productId,
+                    'variation_id' => $variationId,
+                    'quantity'     => $quantity,
+                    'data'         => $product,
+                ]);
+            } catch (\Exception $e) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function product_is_on_sale(\WC_Product $product): bool
+    {
+        if ($product->is_on_sale()) {
+            return true;
+        }
+
+        $sale = $product->get_sale_price('edit');
+
+        if ($sale === '' || $sale === null || (float) $sale <= 0) {
+            return false;
+        }
+
+        $regular = $product->get_regular_price('edit');
+
+        if ($regular !== '' && $regular !== null && (float) $regular > 0) {
+            return (float) $sale < (float) $regular;
+        }
+
+        return true;
+    }
+
+    private function read_item_value($item, string $key)
+    {
+        if (is_array($item)) {
+            return $item[$key] ?? null;
+        }
+
+        if (is_object($item) && property_exists($item, $key)) {
+            return $item->{$key};
+        }
+
+        return null;
+    }
+
+    private function read_item_int($item, string $key): int
+    {
+        $value = $this->read_item_value($item, $key);
+
+        if ($value === null || $value === '') {
+            return 0;
+        }
+
+        return (int) $value;
+    }
+
+    private function read_item_float($item, string $key): float
+    {
+        $value = $this->read_item_value($item, $key);
+
+        if ($value === null || $value === '') {
+            return 0.0;
+        }
+
+        return (float) $value;
+    }
+
     public function normalize_coupon(\WC_Coupon $coupon): array
     {
         $expires = $coupon->get_date_expires();

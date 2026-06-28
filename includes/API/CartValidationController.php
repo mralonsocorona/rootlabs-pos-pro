@@ -185,7 +185,7 @@ class CartValidationController
 
         if ($couponCode !== null && $couponCode !== '') {
             $couponService = new CouponLookupService();
-            $couponResult  = $couponService->validate($couponCode, $discountBaseSubtotal, null);
+            $couponResult  = $couponService->validate_for_items($couponCode, $validated_items, get_current_user_id());
 
             if (is_wp_error($couponResult)) {
                 $coupon_error = $couponResult->get_error_code() === 'mx_pos_coupon_not_found'
