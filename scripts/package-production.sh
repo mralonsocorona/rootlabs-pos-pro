@@ -51,11 +51,13 @@ for f in assets/dist/index.html assets/dist/assets/index.js assets/dist/assets/i
   [ -f "$f" ] && ok "$f" || fail "Falta dist de producción: $f"
 done
 
-grep -q "Stock máximo agregado" assets/dist/assets/index.js \
-  && grep -q "Carrito restaurado" assets/dist/assets/index.js \
-  && grep -q "Existencias actualizadas" assets/dist/assets/index.js \
-  && ok "dist contiene hotfix probado en servidor" \
-  || fail "dist no contiene los hotfixes probados en servidor"
+grep -Rqs "validate_for_items" \
+  includes/Coupons/CouponLookupService.php \
+  includes/API/CartValidationController.php \
+  includes/Sales/CheckoutService.php \
+  includes/Sales/SaleService.php \
+  && ok "distinción de descuentos POS 0.1.3 presente" \
+  || fail "distinción de descuentos POS 0.1.3 no está presente"
 
 if [ "$FAILED" -eq 0 ]; then
   echo
@@ -101,6 +103,7 @@ if [ "$FAILED" -eq 0 ]; then
     --exclude "/package.json" \
     --exclude "/package-lock.json" \
     --exclude "/pnpm-lock.yaml" \
+    --exclude "/pnpm-workspace.yaml" \
     --exclude "/readme.txt" \
     --exclude "/languages/" \
     --exclude "/tsconfig.json" \
@@ -141,7 +144,7 @@ if [ "$FAILED" -eq 0 ]; then
 
   echo
   echo "== Confirmar que NO se coló basura =="
-  unzip -l "$ZIP" | grep -E "mx-pos-pro/build/|mx-pos-pro/frontend/|mx-pos-pro/docs/|mx-pos-pro/scripts/|node_modules/|\.git/|package\.json|package-lock\.json|pnpm-lock\.yaml|readme\.txt|mx-pos-pro/languages/|tsconfig\.json|vite\.config\.ts|README\.md|CHANGELOG\.md|CONTRIBUTING\.md|SECURITY\.md|ROADMAP\.md|\.gitignore"
+  unzip -l "$ZIP" | grep -E "mx-pos-pro/build/|mx-pos-pro/frontend/|mx-pos-pro/docs/|mx-pos-pro/scripts/|node_modules/|\.git/|package\.json|package-lock\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|readme\.txt|mx-pos-pro/languages/|tsconfig\.json|vite\.config\.ts|README\.md|CHANGELOG\.md|CONTRIBUTING\.md|SECURITY\.md|ROADMAP\.md|\.gitignore"
 
   if [ "$?" -eq 0 ]; then
     fail "El ZIP contiene archivos de desarrollo o build viejo."
