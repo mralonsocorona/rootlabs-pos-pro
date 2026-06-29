@@ -116,7 +116,10 @@ class CashCutService
         }
 
         $cutData = $this->cutRepo->create([
-            'session_id'   => $sessionId,
+            'session_id'      => $sessionId,
+            'branch_id'       => isset($session['branch_id']) ? (int) $session['branch_id'] : null,
+            'pos_register_id' => isset($session['pos_register_id']) ? (int) $session['pos_register_id'] : null,
+            'pos_employee_id' => isset($session['pos_employee_id']) ? (int) $session['pos_employee_id'] : null,
             'cut_type'     => 'Z',
             'sequence'     => 1,
             'summary_json' => $summaryJson,

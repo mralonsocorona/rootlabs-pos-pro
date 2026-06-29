@@ -25,6 +25,9 @@ class RefundRepository
             'sale_id'           => (int) $data['sale_id'],
             'wc_refund_id'      => (int) $data['wc_refund_id'],
             'session_id'        => (int) $data['session_id'],
+            'branch_id'         => isset($data['branch_id']) && (int) $data['branch_id'] > 0 ? (int) $data['branch_id'] : null,
+            'pos_register_id'   => isset($data['pos_register_id']) && (int) $data['pos_register_id'] > 0 ? (int) $data['pos_register_id'] : null,
+            'pos_employee_id'   => isset($data['pos_employee_id']) && (int) $data['pos_employee_id'] > 0 ? (int) $data['pos_employee_id'] : null,
             'cashier_id'        => (int) $data['cashier_id'],
             'refund_type'       => $data['refund_type'],
             'refund_amount'     => $data['refund_amount'],
@@ -35,7 +38,7 @@ class RefundRepository
             'created_at'        => current_time('mysql'),
         ];
 
-        $formats = ['%d', '%d', '%d', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%s'];
+        $formats = ['%d', '%d', '%d', '%d', '%d', '%d', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%s'];
 
         $result = $wpdb->insert($this->table, $insertData, $formats);
 

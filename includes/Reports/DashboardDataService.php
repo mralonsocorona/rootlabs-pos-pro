@@ -82,7 +82,9 @@ class DashboardDataService
         $refundWhere   = [];
         $refundArgs    = [];
         $this->build_date_range($refundWhere, $refundArgs, 'created_at', $dateFrom, $dateTo);
-        $this->build_where($refundWhere, $refundArgs, 'session_id', null);
+        $this->build_where($refundWhere, $refundArgs, 'branch_id', $branchId);
+        $this->build_where($refundWhere, $refundArgs, 'pos_register_id', $registerId);
+        $this->build_where($refundWhere, $refundArgs, 'pos_employee_id', $employeeId);
 
         $refundWhereStr = implode(' AND ', $refundWhere);
         $refundSql = $wpdb->prepare(
@@ -474,6 +476,9 @@ class DashboardDataService
         $args  = [];
         $this->build_date_range($where, $args, 'rf.created_at', $dateFrom, $dateTo);
         $where[] = "rf.refund_type IN ('partial', 'total', 'full')";
+        $this->build_where($where, $args, 'rf.branch_id', $branchId);
+        $this->build_where($where, $args, 'rf.pos_register_id', $registerId);
+        $this->build_where($where, $args, 'rf.pos_employee_id', $employeeId);
 
         $whereStr = implode(' AND ', $where);
 
@@ -487,9 +492,13 @@ class DashboardDataService
         $items = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT rf.id, rf.created_at, rf.refund_type, rf.refund_amount, rf.refund_method, rf.reason, rf.sale_id,
-                        COALESCE(u.display_name, '—') AS cashier_name
+                        COALESCE(u.display_name, '—') AS cashier_name,
+                        COALESCE(b.name, '—') AS branch_name,
+                        COALESCE(r.name, '—') AS register_name
                  FROM {$this->refundsTable} rf
                  LEFT JOIN {$wpdb->users} u ON rf.cashier_id = u.ID
+                 LEFT JOIN {$this->branchesTable} b ON rf.branch_id = b.id
+                 LEFT JOIN {$this->registersTable} r ON rf.pos_register_id = r.id
                  WHERE {$whereStr}
                  ORDER BY rf.created_at DESC
                  LIMIT %d OFFSET %d",

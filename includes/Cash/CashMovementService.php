@@ -108,6 +108,10 @@ class CashMovementService
         $sessionId = (int) $sessionResult['session']['id'];
         $amountValue = (float) $amount;
 
+        $branchId      = isset($sessionResult['session']['branch_id']) ? (int) $sessionResult['session']['branch_id'] : null;
+        $posRegisterId = isset($sessionResult['session']['pos_register_id']) ? (int) $sessionResult['session']['pos_register_id'] : null;
+        $posEmployeeId = isset($sessionResult['session']['pos_employee_id']) ? (int) $sessionResult['session']['pos_employee_id'] : null;
+
         if ($client_request_id !== null && trim($client_request_id) !== '') {
             $client_request_id = trim($client_request_id);
 
@@ -141,6 +145,9 @@ class CashMovementService
 
         $data = [
             'session_id'        => $sessionId,
+            'branch_id'         => $branchId,
+            'pos_register_id'   => $posRegisterId,
+            'pos_employee_id'   => $posEmployeeId,
             'movement_type'     => $movement_type,
             'amount'            => $this->formatDecimal($amountValue),
             'reason'            => $reason !== null && $reason !== '' ? $reason : null,
@@ -264,6 +271,9 @@ class CashMovementService
 
         $movement = $this->movementRepo->create([
             'session_id'    => $sessionId,
+            'branch_id'     => isset($sessionResult['session']['branch_id']) ? (int) $sessionResult['session']['branch_id'] : null,
+            'pos_register_id' => isset($sessionResult['session']['pos_register_id']) ? (int) $sessionResult['session']['pos_register_id'] : null,
+            'pos_employee_id' => isset($sessionResult['session']['pos_employee_id']) ? (int) $sessionResult['session']['pos_employee_id'] : null,
             'movement_type' => $reverseType,
             'amount'        => $this->formatDecimal($amountValue),
             'reason'        => $generatedReason,

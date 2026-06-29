@@ -48,6 +48,7 @@ class Plugin
         require_once MX_POS_PRO_INCLUDES . 'Entities/RegisterRepository.php';
         require_once MX_POS_PRO_INCLUDES . 'Entities/EmployeeRepository.php';
         require_once MX_POS_PRO_INCLUDES . 'Auth/POSAuthService.php';
+        require_once MX_POS_PRO_INCLUDES . 'Context/POSContextService.php';
         require_once MX_POS_PRO_INCLUDES . 'Core/POSCapabilityBridge.php';
         require_once MX_POS_PRO_INCLUDES . 'Payments/PaymentMethodRepository.php';
 

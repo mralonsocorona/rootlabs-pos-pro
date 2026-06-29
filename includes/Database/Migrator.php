@@ -12,7 +12,7 @@ class Migrator
 
         $current = get_option('mx_pos_pro_db_version', '');
 
-        if ($current !== MX_POS_PRO_DB_VERSION || ! self::tables_exist() || self::needs_1_5_repair() || self::needs_1_6_repair() || self::needs_1_7_repair() || self::needs_1_8_repair() || self::needs_1_9_repair() || self::needs_1_10_repair() || self::needs_1_11_repair()) {
+        if ($current !== MX_POS_PRO_DB_VERSION || ! self::tables_exist() || self::needs_1_5_repair() || self::needs_1_6_repair() || self::needs_1_7_repair() || self::needs_1_8_repair() || self::needs_1_9_repair() || self::needs_1_10_repair() || self::needs_1_11_repair() || self::needs_1_12_repair()) {
             self::migrate_from($current);
         }
     }
@@ -21,7 +21,7 @@ class Migrator
     {
         $current = get_option('mx_pos_pro_db_version', '');
 
-        if ($current !== MX_POS_PRO_DB_VERSION || ! self::tables_exist() || self::needs_1_5_repair() || self::needs_1_6_repair() || self::needs_1_7_repair() || self::needs_1_8_repair() || self::needs_1_9_repair() || self::needs_1_10_repair() || self::needs_1_11_repair()) {
+        if ($current !== MX_POS_PRO_DB_VERSION || ! self::tables_exist() || self::needs_1_5_repair() || self::needs_1_6_repair() || self::needs_1_7_repair() || self::needs_1_8_repair() || self::needs_1_9_repair() || self::needs_1_10_repair() || self::needs_1_11_repair() || self::needs_1_12_repair()) {
             self::run();
         }
     }
@@ -74,10 +74,14 @@ class Migrator
             self::migrate_to_1_11();
         }
 
+        if (in_array($from_version, [MX_POS_PRO_DB_VERSION, '1.11', '1.10', '1.9', '1.8', '1.7', '1.6', '1.5', '1.4', '1.3', '1.2', '1.1', '1.0', ''], true)) {
+            self::migrate_to_1_12();
+        }
+
         require_once MX_POS_PRO_INCLUDES . 'Core/Capabilities.php';
         \MXPOSPro\Core\Capabilities::install();
 
-        if (self::is_1_11_complete()) {
+        if (self::is_1_12_complete()) {
             update_option('mx_pos_pro_db_version', MX_POS_PRO_DB_VERSION, false);
         }
     }
@@ -1370,5 +1374,183 @@ class Migrator
         }
 
         return true;
+    }
+
+    // ── Migration 1.12 — Multi-store: refunds branch/register/employee columns ──
+
+    private static function migrate_to_1_12(): void
+    {
+        global $wpdb;
+
+        if (self::is_1_12_complete()) {
+            return;
+        }
+
+        self::ensure_1_12_refund_columns($wpdb);
+        self::ensure_1_12_refund_indexes($wpdb);
+        self::ensure_1_12_backfill($wpdb);
+        self::log_schema_upgraded($wpdb);
+    }
+
+    private static function ensure_1_12_refund_columns($wpdb): void
+    {
+        $table = $wpdb->prefix . 'mx_pos_refunds';
+
+        $table_exists = $wpdb->get_var(
+            $wpdb->prepare('SHOW TABLES LIKE %s', $table)
+        );
+
+        if ($table_exists !== $table) {
+            return;
+        }
+
+        if (! self::column_exists('mx_pos_refunds', 'branch_id')) {
+            $wpdb->query(
+                "ALTER TABLE `{$table}` ADD COLUMN branch_id BIGINT UNSIGNED DEFAULT NULL AFTER session_id"
+            );
+        }
+
+        if (! self::column_exists('mx_pos_refunds', 'pos_register_id')) {
+            $wpdb->query(
+                "ALTER TABLE `{$table}` ADD COLUMN pos_register_id BIGINT UNSIGNED DEFAULT NULL AFTER branch_id"
+            );
+        }
+
+        if (! self::column_exists('mx_pos_refunds', 'pos_employee_id')) {
+            $wpdb->query(
+                "ALTER TABLE `{$table}` ADD COLUMN pos_employee_id BIGINT UNSIGNED DEFAULT NULL AFTER pos_register_id"
+            );
+        }
+    }
+
+    private static function ensure_1_12_refund_indexes($wpdb): void
+    {
+        $table = $wpdb->prefix . 'mx_pos_refunds';
+
+        $table_exists = $wpdb->get_var(
+            $wpdb->prepare('SHOW TABLES LIKE %s', $table)
+        );
+
+        if ($table_exists !== $table) {
+            return;
+        }
+
+        foreach (['branch_id', 'pos_register_id', 'pos_employee_id'] as $index) {
+            $found = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS
+                     WHERE TABLE_SCHEMA = DATABASE()
+                       AND TABLE_NAME = %s
+                       AND INDEX_NAME = %s",
+                    $table,
+                    $index
+                )
+            );
+
+            if ((int) $found === 0) {
+                $wpdb->query(
+                    "ALTER TABLE `{$table}` ADD KEY `{$index}` (`{$index}`)"
+                );
+            }
+        }
+    }
+
+    private static function ensure_1_12_backfill($wpdb): void
+    {
+        $refunds_table = $wpdb->prefix . 'mx_pos_refunds';
+        $sales_table   = $wpdb->prefix . 'mx_pos_sales';
+
+        if (! self::table_exists('mx_pos_refunds') || ! self::table_exists('mx_pos_sales')) {
+            return;
+        }
+
+        if (
+            ! self::column_exists('mx_pos_refunds', 'branch_id')
+            || ! self::column_exists('mx_pos_sales', 'branch_id')
+        ) {
+            return;
+        }
+
+        $branch = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}mx_pos_branches WHERE slug = %s LIMIT 1",
+                'main'
+            ),
+            ARRAY_A
+        );
+
+        $register = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}mx_pos_registers WHERE slug = %s LIMIT 1",
+                'main'
+            ),
+            ARRAY_A
+        );
+
+        $main_branch_id   = $branch ? (int) $branch['id'] : null;
+        $main_register_id = $register ? (int) $register['id'] : null;
+
+        $null_branch = $wpdb->get_var(
+            "SELECT COUNT(*) FROM `{$refunds_table}` WHERE branch_id IS NULL"
+        );
+
+        if ((int) $null_branch > 0) {
+            $wpdb->query(
+                "UPDATE `{$refunds_table}` r
+                 JOIN `{$sales_table}` s ON r.sale_id = s.id
+                 SET r.branch_id = COALESCE(s.branch_id, {$main_branch_id}),
+                     r.pos_register_id = COALESCE(s.pos_register_id, {$main_register_id}),
+                     r.pos_employee_id = s.pos_employee_id
+                 WHERE r.branch_id IS NULL"
+            );
+
+            if ($main_branch_id !== null) {
+                $wpdb->query(
+                    $wpdb->prepare(
+                        "UPDATE `{$refunds_table}`
+                         SET branch_id = %d
+                         WHERE branch_id IS NULL",
+                        $main_branch_id
+                    )
+                );
+            }
+
+            if ($main_register_id !== null) {
+                $wpdb->query(
+                    $wpdb->prepare(
+                        "UPDATE `{$refunds_table}`
+                         SET pos_register_id = %d
+                         WHERE pos_register_id IS NULL",
+                        $main_register_id
+                    )
+                );
+            }
+        }
+    }
+
+    private static function needs_1_12_repair(): bool
+    {
+        return ! self::is_1_12_complete();
+    }
+
+    private static function is_1_12_complete(): bool
+    {
+        return self::is_1_11_complete()
+            && self::has_1_12_refund_columns()
+            && self::has_1_12_refund_indexes();
+    }
+
+    private static function has_1_12_refund_columns(): bool
+    {
+        return self::column_exists('mx_pos_refunds', 'branch_id')
+            && self::column_exists('mx_pos_refunds', 'pos_register_id')
+            && self::column_exists('mx_pos_refunds', 'pos_employee_id');
+    }
+
+    private static function has_1_12_refund_indexes(): bool
+    {
+        return self::index_exists('mx_pos_refunds', 'branch_id')
+            && self::index_exists('mx_pos_refunds', 'pos_register_id')
+            && self::index_exists('mx_pos_refunds', 'pos_employee_id');
     }
 }

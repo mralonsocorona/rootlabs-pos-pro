@@ -222,6 +222,22 @@ if ($session === null) {
             );
         }
 
+        $employeeRepo = new \MXPOSPro\Entities\EmployeeRepository();
+        $employee     = $employeeRepo->get_by_id($pos_employee_id);
+
+        if (
+            $employee !== null
+            && isset($employee['branch_id'])
+            && (int) $employee['branch_id'] > 0
+            && (int) $employee['branch_id'] !== (int) $branch_id
+        ) {
+            return new WP_Error(
+                'mx_pos_employee_branch_mismatch',
+                __('No tienes permitido operar esta sucursal.', 'mx-pos-pro'),
+                ['status' => 403]
+            );
+        }
+
         $this->audit_cash_session_open_attempt(
             $pos_employee_id,
             $pos_register_id,
@@ -617,8 +633,11 @@ if ($session === null) {
             'status'          => $session['status'],
             'pos_employee_id' => isset($session['pos_employee_id']) ? (int) $session['pos_employee_id'] : null,
             'cashier_id'      => isset($session['cashier_id']) ? (int) $session['cashier_id'] : null,
+            'branch_id'       => isset($session['branch_id']) ? (int) $session['branch_id'] : null,
+            'pos_register_id' => isset($session['pos_register_id']) ? (int) $session['pos_register_id'] : null,
             'register_name'   => $session['register_name'] ?? null,
             'employee_name'   => $session['employee_name'] ?? null,
+            'branch_name'     => $session['branch_name'] ?? null,
         ];
     }
 

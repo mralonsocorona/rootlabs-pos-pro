@@ -155,10 +155,23 @@ class RefundService
 
         $this->saleRepo->update_status($saleId, 'cancelled');
 
+        $refundBranchId = isset($sale['branch_id']) && (int) $sale['branch_id'] > 0
+            ? (int) $sale['branch_id']
+            : (isset($session['branch_id']) && (int) $session['branch_id'] > 0 ? (int) $session['branch_id'] : null);
+        $refundRegisterId = isset($sale['pos_register_id']) && (int) $sale['pos_register_id'] > 0
+            ? (int) $sale['pos_register_id']
+            : (isset($session['pos_register_id']) && (int) $session['pos_register_id'] > 0 ? (int) $session['pos_register_id'] : null);
+        $refundEmployeeId = isset($sale['pos_employee_id']) && (int) $sale['pos_employee_id'] > 0
+            ? (int) $sale['pos_employee_id']
+            : (isset($session['pos_employee_id']) && (int) $session['pos_employee_id'] > 0 ? (int) $session['pos_employee_id'] : null);
+
         $refundData = $this->refundRepo->create([
             'sale_id'           => $saleId,
             'wc_refund_id'      => 0,
             'session_id'        => $sessionId,
+            'branch_id'         => $refundBranchId,
+            'pos_register_id'   => $refundRegisterId,
+            'pos_employee_id'   => $refundEmployeeId,
             'cashier_id'        => $userId,
             'refund_type'       => 'total',
             'refund_amount'     => '0.0000',
@@ -528,10 +541,23 @@ class RefundService
         $newRefundedTotal = $refundedTotal + $totalRefundAmount;
         $fullRefundCompleted = $newRefundedTotal >= $saleTotal - 0.00001;
 
+        $refundBranchId = isset($sale['branch_id']) && (int) $sale['branch_id'] > 0
+            ? (int) $sale['branch_id']
+            : (isset($session['branch_id']) && (int) $session['branch_id'] > 0 ? (int) $session['branch_id'] : null);
+        $refundRegisterId = isset($sale['pos_register_id']) && (int) $sale['pos_register_id'] > 0
+            ? (int) $sale['pos_register_id']
+            : (isset($session['pos_register_id']) && (int) $session['pos_register_id'] > 0 ? (int) $session['pos_register_id'] : null);
+        $refundEmployeeId = isset($sale['pos_employee_id']) && (int) $sale['pos_employee_id'] > 0
+            ? (int) $sale['pos_employee_id']
+            : (isset($session['pos_employee_id']) && (int) $session['pos_employee_id'] > 0 ? (int) $session['pos_employee_id'] : null);
+
         $refundData = $this->refundRepo->create([
             'sale_id'           => $saleId,
             'wc_refund_id'      => $wcRefundId,
             'session_id'        => $sessionId,
+            'branch_id'         => $refundBranchId,
+            'pos_register_id'   => $refundRegisterId,
+            'pos_employee_id'   => $refundEmployeeId,
             'cashier_id'        => $userId,
             'refund_type'       => $fullRefundCompleted ? 'total' : 'partial',
             'refund_amount'     => $this->formatDecimal($totalRefundAmount),

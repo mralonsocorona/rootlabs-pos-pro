@@ -120,6 +120,22 @@ class WooOrderFactory
         $order->add_meta_data('_mx_pos_session_id', $posMeta['session_id']);
         $order->add_meta_data('_mx_pos_cashier_id', $posMeta['cashier_id']);
 
+        if (! empty($posMeta['branch_id'])) {
+            $order->add_meta_data('_mx_pos_branch_id', (int) $posMeta['branch_id']);
+        }
+        if (! empty($posMeta['branch_name'])) {
+            $order->add_meta_data('_mx_pos_branch_name', sanitize_text_field($posMeta['branch_name']));
+        }
+        if (! empty($posMeta['register_id'])) {
+            $order->add_meta_data('_mx_pos_register_id', (int) $posMeta['register_id']);
+        }
+        if (! empty($posMeta['register_name'])) {
+            $order->add_meta_data('_mx_pos_register_name', sanitize_text_field($posMeta['register_name']));
+        }
+        if (! empty($posMeta['employee_id'])) {
+            $order->add_meta_data('_mx_pos_employee_id', (int) $posMeta['employee_id']);
+        }
+
         $cashierName = isset($posMeta['cashier_name']) && is_string($posMeta['cashier_name'])
             ? sanitize_text_field($posMeta['cashier_name'])
             : '';

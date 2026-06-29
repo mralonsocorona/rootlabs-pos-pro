@@ -4,7 +4,7 @@ Tags: woocommerce, pos, point of sale, retail, cash register
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 0.1.3
+Stable tag: 0.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -58,6 +58,14 @@ No. The uninstall routine is intentionally non-destructive to prevent accidental
 3. Admin settings.
 
 == Changelog ==
+
+= 0.1.4 =
+* Added multi-store branch/register/employee context propagation across POS sales, WooCommerce orders, cash movements, cash cuts, refunds, dashboard filters, and tickets.
+* Added WooCommerce POS order metadata for branch, register, session, and employee context.
+* Added database migration 1.12 for refund branch/register/employee context with indexes and backfill.
+* Fixed refund attribution so refunds prefer the original sale branch/register/employee instead of the current active session.
+* Added server-side employee branch enforcement when opening POS register sessions.
+* Preserved backward compatibility for single-store installs and employees without branch assignment.
 
 = 0.1.3 =
 * Fix POS coupon totals so coupons that exclude sale items do not discount products already on sale.

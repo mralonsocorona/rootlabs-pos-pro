@@ -26,6 +26,9 @@ class CashMovementRepository
 
         $insert_data = [
             'session_id'         => (int) $data['session_id'],
+            'branch_id'          => isset($data['branch_id']) && (int) $data['branch_id'] > 0 ? (int) $data['branch_id'] : null,
+            'pos_register_id'    => isset($data['pos_register_id']) && (int) $data['pos_register_id'] > 0 ? (int) $data['pos_register_id'] : null,
+            'pos_employee_id'    => isset($data['pos_employee_id']) && (int) $data['pos_employee_id'] > 0 ? (int) $data['pos_employee_id'] : null,
             'movement_type'      => (string) $data['movement_type'],
             'amount'             => $data['amount'],
             'reason'             => $data['reason'] ?? null,
@@ -34,7 +37,7 @@ class CashMovementRepository
             'created_at'         => current_time('mysql'),
         ];
 
-        $formats = ['%d', '%s', '%f', '%s', '%d', '%s', '%s'];
+        $formats = ['%d', '%d', '%d', '%d', '%s', '%f', '%s', '%d', '%s', '%s'];
 
         $wpdb->insert($this->table, $insert_data, $formats);
 

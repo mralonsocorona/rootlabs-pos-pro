@@ -9,6 +9,7 @@ use MXPOSPro\Cart\CartItemValidator;
 use MXPOSPro\Cart\CartDiscountValidator;
 use MXPOSPro\Cart\ParkedCartRepository;
 use MXPOSPro\Cash\CashSessionService;
+use MXPOSPro\Context\POSContextService;
 use MXPOSPro\Coupons\CouponLookupService;
 use MXPOSPro\Customers\CustomerLookupService;
 use WP_Error;
@@ -62,9 +63,10 @@ class SaleService
             );
         }
 
-        $sessionResult = $this->sessionService->get_current_session($userId);
+        $contextSvc = new POSContextService();
+        $context    = $contextSvc->resolve();
 
-        if (! $sessionResult['has_open_session'] || $sessionResult['session'] === null) {
+        if (is_wp_error($context)) {
             AuditLogger::log('sale_blocked_no_session', [
                 'entity_type'  => 'sale',
                 'severity'     => 'warn',
@@ -74,15 +76,10 @@ class SaleService
                 ],
             ]);
 
-            return new WP_Error(
-                'mx_pos_no_open_session',
-                __('No open session found. Open a session before creating orders.', 'mx-pos-pro'),
-                ['status' => 409]
-            );
+            return $context;
         }
 
-        $session   = $sessionResult['session'];
-        $sessionId = (int) $session['id'];
+        $sessionId = (int) $context['session_id'];
 
         if (! isset($payload['client_request_id']) || ! is_string($payload['client_request_id'])) {
             return new WP_Error(
@@ -292,8 +289,13 @@ class SaleService
         $posMeta = [
             'session_id'        => $sessionId,
             'cashier_id'        => $userId,
-            'cashier_name'      => $this->resolve_cashier_name($userId, $session),
+            'cashier_name'      => $this->resolve_cashier_name($userId, ['employee_name' => null]),
             'client_request_id' => $clientRequestId,
+            'branch_id'         => $context['branch_id'],
+            'branch_name'       => $context['branch_name'],
+            'register_id'       => $context['register_id'],
+            'register_name'     => $context['register_name'],
+            'employee_id'       => $context['employee_id'],
         ];
 
         $order = $this->orderFactory->create(
@@ -333,6 +335,9 @@ class SaleService
         $saleData = [
             'wc_order_id'     => $order->get_id(),
             'session_id'      => $sessionId,
+            'branch_id'       => $context['branch_id'],
+            'pos_register_id' => $context['register_id'],
+            'pos_employee_id' => $context['employee_id'],
             'cashier_id'      => $userId,
             'total'           => $totalStr,
             'payment_summary' => $paymentSummary,

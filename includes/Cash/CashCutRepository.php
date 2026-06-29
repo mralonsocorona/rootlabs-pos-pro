@@ -27,7 +27,10 @@ class CashCutRepository
         global $wpdb;
 
         $insertData = [
-            'session_id'   => (int) $data['session_id'],
+            'session_id'      => (int) $data['session_id'],
+            'branch_id'       => isset($data['branch_id']) && (int) $data['branch_id'] > 0 ? (int) $data['branch_id'] : null,
+            'pos_register_id' => isset($data['pos_register_id']) && (int) $data['pos_register_id'] > 0 ? (int) $data['pos_register_id'] : null,
+            'pos_employee_id' => isset($data['pos_employee_id']) && (int) $data['pos_employee_id'] > 0 ? (int) $data['pos_employee_id'] : null,
             'cut_type'     => $data['cut_type'],
             'sequence'     => (int) ($data['sequence'] ?? 1),
             'summary_json' => $data['summary_json'],
@@ -36,7 +39,7 @@ class CashCutRepository
             'is_final'     => (int) ($data['is_final'] ?? 0),
         ];
 
-        $formats = ['%d', '%s', '%d', '%s', '%d', '%s', '%d'];
+        $formats = ['%d', '%d', '%d', '%d', '%s', '%d', '%s', '%d', '%s', '%d'];
 
         $result = $wpdb->insert($this->table, $insertData, $formats);
 
